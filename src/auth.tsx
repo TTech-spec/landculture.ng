@@ -3,26 +3,43 @@ import { supabase } from "@/lib/supabase";
 import type { ProfileStatus } from "@/lib/supabase";
 
 /* ============================================================================
-   PALETTE
+   PALETTE — matches the reference photo-hero mobile design
 ============================================================================ */
 const C = {
-  green: "#1B4D3E",
-  greenMid: "#2E6B55",
-  greenLight: "#3A8A6A",
-  mint: "#EAF4EF",
-  mintDark: "#C8E6D8",
-  fieldBg: "#EEF5F1",
-  ink: "#1A1A1A",
-  label: "#1F2A24",
-  sub: "#7A8F85",
-  border: "transparent",
-  white: "#FFFFFF",
-  error: "#DC2626",
-  errorBg: "#FEF2F2",
-  warning: "#D97706",
-  warningBg: "#FFFBEB",
-  placeholder: "#9EB5A8",
+  green:       "#2D5016",   // deep olive — headings, button
+  greenMid:    "#3B6B1A",   // hover state
+  greenLight:  "#EAF2E0",   // field background tint
+  greenBorder: "#C5DCAA",   // field border
+  greenIcon:   "#5A8A30",   // icon inside field
+  ink:         "#1C2B0E",   // headings
+  sub:         "#6B7A5E",   // subheadings / placeholder
+  link:        "#2D5016",   // "Sign up" / "Sign in"
+  white:       "#FFFFFF",
+  error:       "#C0392B",
+  errorBg:     "#FEF2F2",
+  success:     "#2D5016",
+  successBg:   "#EAF2E0",
+  warning:     "#A0520A",
+  warningBg:   "#FEF8EC",
+  placeholder: "#9BAD86",
 };
+
+/* Lush tropical leaf photo — top hero */
+const LEAF_PHOTO = "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=900&auto=format&fit=crop";
+
+/* Small leaf sprig SVG used as a decorative element near the heading */
+const LeafSprig = () => (
+  <svg width="52" height="56" viewBox="0 0 52 56" fill="none" style={{ flexShrink: 0 }}>
+    <ellipse cx="26" cy="28" rx="14" ry="22" fill="#4A7C25" transform="rotate(-20 26 28)" />
+    <ellipse cx="26" cy="28" rx="5"  ry="17" fill="#3B6B1A" transform="rotate(-20 26 28)" />
+    <line x1="26" y1="50" x2="26" y2="10" stroke="#2D5016" strokeWidth="1.5"
+      strokeLinecap="round" transform="rotate(-20 26 28)" />
+    <ellipse cx="38" cy="22" rx="10" ry="17" fill="#5A8A30" transform="rotate(15 38 22)" />
+    <ellipse cx="38" cy="22" rx="3.5" ry="12" fill="#4A7C25" transform="rotate(15 38 22)" />
+    <line x1="38" y1="38" x2="38" y2="8" stroke="#3B6B1A" strokeWidth="1.2"
+      strokeLinecap="round" transform="rotate(15 38 22)" />
+  </svg>
+);
 
 export interface User {
   id: string;
@@ -40,413 +57,237 @@ interface AuthFlowProps {
 type Screen = "login" | "register" | "pending" | "rejected";
 
 /* ============================================================================
-   SHARED STYLES
+   BRANCHES & TEAMS
 ============================================================================ */
-const FONT = "'DM Sans', 'Plus Jakarta Sans', system-ui, sans-serif";
+const BRANCHES = [
+  "Sango Branch",
+];
 
-const mobileWrap: React.CSSProperties = {
-  minHeight: "100vh",
-  width: "100%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  background: "#D6E8DF",
-  fontFamily: FONT,
-  padding: "16px",
-  boxSizing: "border-box",
-};
+const TEAMS = [
+  "Success Team",
+  "Achievers Team",
+];
 
-const phoneShell: React.CSSProperties = {
-  width: "100%",
-  maxWidth: 390,
-  minHeight: 720,
-  borderRadius: 40,
-  overflow: "hidden",
-  boxShadow: "0 30px 80px rgba(0,0,0,0.25), 0 0 0 8px #1A1A1A, 0 0 0 10px #3A3A3A",
-  position: "relative",
-  background: C.white,
-  display: "flex",
-  flexDirection: "column",
-};
-
-const primaryBtn: React.CSSProperties = {
-  width: "100%",
-  height: 54,
-  borderRadius: 32,
-  border: "none",
-  background: C.green,
-  color: C.white,
-  fontSize: 16,
-  fontWeight: 700,
-  cursor: "pointer",
-  fontFamily: FONT,
-  letterSpacing: 0.3,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 8,
-  transition: "opacity .2s, transform .15s",
-  boxShadow: "0 6px 20px rgba(27,77,62,0.35)",
-};
-
-const secondaryBtn: React.CSSProperties = {
-  width: "100%",
-  height: 50,
-  borderRadius: 32,
-  border: `2px solid ${C.mintDark}`,
-  background: "transparent",
-  color: C.green,
-  fontSize: 15,
-  fontWeight: 700,
-  cursor: "pointer",
-  fontFamily: FONT,
-  transition: "background .2s",
-};
-
+/* ============================================================================
+   SPINNER
+============================================================================ */
 const spinnerStyle: React.CSSProperties = {
-  width: 18,
-  height: 18,
+  width: 16,
+  height: 16,
   borderRadius: "50%",
-  border: "2.5px solid rgba(255,255,255,.3)",
+  border: "2.5px solid rgba(255,255,255,.35)",
   borderTopColor: "#fff",
-  animation: "spin .7s linear infinite",
+  animation: "mSpin .7s linear infinite",
   display: "inline-block",
   flexShrink: 0,
 };
-
-/* ============================================================================
-   BOTANICL HERO HEADER
-============================================================================ */
-function BotanicalHeader({
-  back,
-  onBack,
-}: {
-  back?: boolean;
-  onBack?: () => void;
-}) {
-  return (
-    <div style={{ position: "relative", height: 240, flexShrink: 0 }}>
-      {/* Leaf background using CSS gradient + SVG pattern to simulate lush foliage */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: `
-            radial-gradient(ellipse at 20% 30%, #0D3B2C 0%, transparent 55%),
-            radial-gradient(ellipse at 80% 10%, #1B5C40 0%, transparent 50%),
-            radial-gradient(ellipse at 50% 80%, #0A2E20 0%, transparent 60%),
-            radial-gradient(ellipse at 10% 90%, #163D2B 0%, transparent 45%),
-            radial-gradient(ellipse at 90% 70%, #1A4D35 0%, transparent 50%),
-            #0F3826
-          `,
-          overflow: "hidden",
-        }}
-      >
-        {/* SVG leaf shapes */}
-        <svg
-          viewBox="0 0 390 240"
-          xmlns="http://www.w3.org/2000/svg"
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-          preserveAspectRatio="xMidYMid slice"
-        >
-          {/* Large back leaves */}
-          <ellipse cx="60" cy="60" rx="90" ry="40" fill="#0D3B2C" transform="rotate(-30 60 60)" opacity="0.9"/>
-          <ellipse cx="330" cy="40" rx="80" ry="35" fill="#1A5E3F" transform="rotate(25 330 40)" opacity="0.85"/>
-          <ellipse cx="200" cy="20" rx="70" ry="30" fill="#143D2B" transform="rotate(10 200 20)" opacity="0.8"/>
-          <ellipse cx="20" cy="180" rx="100" ry="38" fill="#0C3525" transform="rotate(-20 20 180)" opacity="0.9"/>
-          <ellipse cx="370" cy="160" rx="85" ry="32" fill="#184D35" transform="rotate(35 370 160)" opacity="0.85"/>
-          {/* Mid leaves */}
-          <ellipse cx="100" cy="100" rx="65" ry="28" fill="#1B5C40" transform="rotate(-45 100 100)" opacity="0.7"/>
-          <ellipse cx="280" cy="90" rx="75" ry="30" fill="#165438" transform="rotate(15 280 90)" opacity="0.75"/>
-          <ellipse cx="160" cy="190" rx="80" ry="35" fill="#12402E" transform="rotate(-10 160 190)" opacity="0.8"/>
-          <ellipse cx="320" cy="200" rx="60" ry="25" fill="#1D6045" transform="rotate(40 320 200)" opacity="0.7"/>
-          {/* Leaf veins */}
-          <line x1="60" y1="40" x2="60" y2="80" stroke="#0A2E20" strokeWidth="1.5" opacity="0.5"/>
-          <line x1="100" y1="85" x2="100" y2="115" stroke="#0A2E20" strokeWidth="1.5" opacity="0.4"/>
-          <line x1="280" y1="75" x2="280" y2="105" stroke="#0A2E20" strokeWidth="1.5" opacity="0.4"/>
-          {/* Front accent leaves */}
-          <ellipse cx="0" cy="120" rx="70" ry="28" fill="#22704F" transform="rotate(-35 0 120)" opacity="0.65"/>
-          <ellipse cx="390" cy="100" rx="65" ry="26" fill="#1F6548" transform="rotate(30 390 100)" opacity="0.6"/>
-          <ellipse cx="195" cy="230" rx="120" ry="42" fill="#0E3526" transform="rotate(5 195 230)" opacity="0.85"/>
-          {/* Highlight leaves */}
-          <ellipse cx="80" cy="30" rx="45" ry="18" fill="#2E8A60" transform="rotate(-25 80 30)" opacity="0.45"/>
-          <ellipse cx="310" cy="50" rx="50" ry="20" fill="#2A7A58" transform="rotate(20 310 50)" opacity="0.4"/>
-        </svg>
-
-        {/* Decorative leaf detail (floating accent) */}
-        <div
-          style={{
-            position: "absolute",
-            right: 20,
-            bottom: 30,
-            width: 60,
-            height: 80,
-          }}
-        >
-          <svg viewBox="0 0 60 80" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M30 75 C30 75 0 50 5 25 C10 5 30 0 30 0 C30 0 50 5 55 25 C60 50 30 75 30 75Z"
-              fill="#3AAD72"
-              opacity="0.85"
-            />
-            <line x1="30" y1="5" x2="30" y2="72" stroke="#1B6040" strokeWidth="1.5" opacity="0.6"/>
-            <line x1="30" y1="25" x2="12" y2="38" stroke="#1B6040" strokeWidth="1" opacity="0.5"/>
-            <line x1="30" y1="35" x2="48" y2="45" stroke="#1B6040" strokeWidth="1" opacity="0.5"/>
-            <line x1="30" y1="45" x2="15" y2="55" stroke="#1B6040" strokeWidth="1" opacity="0.5"/>
-          </svg>
-        </div>
-      </div>
-
-      {/* Wave cutout bottom */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: -1,
-          left: 0,
-          right: 0,
-          height: 60,
-          background: C.white,
-          borderRadius: "50% 50% 0 0 / 100% 100% 0 0",
-        }}
-      />
-
-      {/* Back button */}
-      {back && (
-        <button
-          onClick={onBack}
-          style={{
-            position: "absolute",
-            top: 52,
-            left: 20,
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
-            background: "rgba(255,255,255,0.2)",
-            border: "1px solid rgba(255,255,255,0.3)",
-            color: "#fff",
-            fontSize: 18,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            backdropFilter: "blur(4px)",
-            zIndex: 10,
-          }}
-        >
-          ‹
-        </button>
-      )}
-    </div>
-  );
-}
-
-/* ============================================================================
-   FIELD COMPONENT — Soft mint pill style
-============================================================================ */
-function Field({
-  label,
-  icon,
-  type = "text",
-  value,
-  onChange,
-  placeholder,
-  required,
-  disabled,
-  rightIcon,
-  onRightIconClick,
-}: {
-  label?: string;
-  icon?: React.ReactNode;
-  type?: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  required?: boolean;
-  disabled?: boolean;
-  rightIcon?: React.ReactNode;
-  onRightIconClick?: () => void;
-}) {
-  const [focused, setFocused] = useState(false);
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: label ? 6 : 0 }}>
-      {label && (
-        <label style={{ fontSize: 12, fontWeight: 600, color: C.sub, letterSpacing: 0.5, textTransform: "uppercase" }}>
-          {label}{required && <span style={{ color: C.error, marginLeft: 2 }}>*</span>}
-        </label>
-      )}
-      <div
-        style={{
-          height: 52,
-          borderRadius: 14,
-          background: C.fieldBg,
-          display: "flex",
-          alignItems: "center",
-          padding: "0 16px",
-          gap: 12,
-          border: `2px solid ${focused ? C.greenMid : "transparent"}`,
-          transition: "border-color .2s",
-          opacity: disabled ? 0.6 : 1,
-        }}
-      >
-        {icon && (
-          <span style={{ color: C.greenMid, fontSize: 16, flexShrink: 0, opacity: 0.8 }}>
-            {icon}
-          </span>
-        )}
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          disabled={disabled}
-          required={required}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          style={{
-            flex: 1,
-            border: "none",
-            background: "transparent",
-            outline: "none",
-            fontSize: 14,
-            fontWeight: 500,
-            color: C.ink,
-            fontFamily: FONT,
-            cursor: disabled ? "not-allowed" : "text",
-          }}
-        />
-        {rightIcon && (
-          <button
-            type="button"
-            onClick={onRightIconClick}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: C.sub,
-              fontSize: 16,
-              padding: 0,
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            {rightIcon}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ============================================================================
-   SELECT FIELD
-============================================================================ */
-function SelectField({
-  label,
-  icon,
-  value,
-  onChange,
-  options,
-  required,
-  disabled,
-}: {
-  label?: string;
-  icon?: React.ReactNode;
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-  required?: boolean;
-  disabled?: boolean;
-}) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: label ? 6 : 0 }}>
-      {label && (
-        <label style={{ fontSize: 12, fontWeight: 600, color: C.sub, letterSpacing: 0.5, textTransform: "uppercase" }}>
-          {label}{required && <span style={{ color: C.error, marginLeft: 2 }}>*</span>}
-        </label>
-      )}
-      <div
-        style={{
-          height: 52,
-          borderRadius: 14,
-          background: C.fieldBg,
-          display: "flex",
-          alignItems: "center",
-          padding: "0 16px",
-          gap: 12,
-          border: `2px solid transparent`,
-        }}
-      >
-        {icon && (
-          <span style={{ color: C.greenMid, fontSize: 16, flexShrink: 0, opacity: 0.8 }}>{icon}</span>
-        )}
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-          required={required}
-          style={{
-            flex: 1,
-            border: "none",
-            background: "transparent",
-            outline: "none",
-            fontSize: 14,
-            fontWeight: 500,
-            color: value ? C.ink : C.placeholder,
-            fontFamily: FONT,
-            cursor: disabled ? "not-allowed" : "pointer",
-            appearance: "none",
-          }}
-        >
-          <option value="">Select…</option>
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-        <span style={{ color: C.sub, fontSize: 12 }}>▾</span>
-      </div>
-    </div>
-  );
-}
 
 /* ============================================================================
    ALERT BANNER
 ============================================================================ */
 function Alert({ type, message }: { type: "error" | "warning" | "success"; message: string }) {
   const s = {
-    error: { bg: C.errorBg, text: C.error, icon: "✕" },
-    warning: { bg: C.warningBg, text: C.warning, icon: "⚠" },
-    success: { bg: C.mint, text: C.green, icon: "✓" },
+    error:   { bg: C.errorBg,   border: "#F5C6CB", text: C.error,   icon: "✕" },
+    warning: { bg: C.warningBg, border: "#FDDFA6", text: C.warning, icon: "⚠" },
+    success: { bg: C.successBg, border: C.greenBorder, text: C.success, icon: "✓" },
   }[type];
   return (
-    <div style={{ background: s.bg, borderRadius: 12, padding: "10px 14px", display: "flex", gap: 10, alignItems: "flex-start" }}>
-      <span style={{ color: s.text, fontWeight: 700, flexShrink: 0, fontSize: 14 }}>{s.icon}</span>
+    <div style={{
+      background: s.bg, border: `1px solid ${s.border}`,
+      borderRadius: 12, padding: "10px 14px",
+      display: "flex", gap: 8, alignItems: "flex-start",
+      marginBottom: 16,
+    }}>
+      <span style={{ color: s.text, fontWeight: 700, fontSize: 13, flexShrink: 0 }}>{s.icon}</span>
       <p style={{ margin: 0, fontSize: 13, color: s.text, lineHeight: 1.5 }}>{message}</p>
     </div>
   );
 }
 
 /* ============================================================================
-   BRANCHES & TEAMS
+   MOBILE FIELD — mint-tinted background, icon prefix, pill-ish shape
 ============================================================================ */
-const BRANCHES = [
-  "Lagos – Lekki Branch",
-  "Lagos – Ikeja Branch",
-  "Lagos – Victoria Island Branch",
-  "Abuja – Maitama Branch",
-  "Abuja – Wuse Branch",
-  "Port Harcourt Branch",
-  "Enugu Branch",
-  "Kano Branch",
-];
+function MField({
+  icon,
+  type = "text",
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  rightNode,
+}: {
+  icon: React.ReactNode;
+  type?: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  rightNode?: React.ReactNode;
+}) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      background: C.greenLight,
+      border: `1.5px solid ${focused ? C.green : C.greenBorder}`,
+      borderRadius: 14,
+      padding: "0 14px",
+      height: 52,
+      transition: "border-color .2s",
+    }}>
+      <span style={{ color: C.greenIcon, display: "flex", flexShrink: 0, fontSize: 18 }}>{icon}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        disabled={disabled}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{
+          flex: 1,
+          border: "none",
+          background: "transparent",
+          outline: "none",
+          fontSize: 14,
+          color: C.ink,
+          fontFamily: "inherit",
+        }}
+      />
+      {rightNode && <span style={{ color: C.sub, display: "flex", flexShrink: 0 }}>{rightNode}</span>}
+    </div>
+  );
+}
 
-const TEAMS = [
-  "Sales Team A",
-  "Sales Team B",
-  "Sales Team C",
-  "Premium Sales",
-  "Corporate Sales",
-];
+/* ============================================================================
+   MOBILE SELECT — same tinted style
+============================================================================ */
+function MSelect({
+  icon,
+  value,
+  onChange,
+  options,
+  placeholder = "Select…",
+  disabled,
+}: {
+  icon: React.ReactNode;
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  placeholder?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      background: C.greenLight,
+      border: `1.5px solid ${C.greenBorder}`,
+      borderRadius: 14, padding: "0 14px", height: 52,
+      position: "relative",
+    }}>
+      <span style={{ color: C.greenIcon, display: "flex", flexShrink: 0, fontSize: 18 }}>{icon}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        style={{
+          flex: 1, border: "none", background: "transparent", outline: "none",
+          fontSize: 14, color: value ? C.ink : C.placeholder,
+          fontFamily: "inherit", appearance: "none", cursor: "pointer",
+        }}
+      >
+        <option value="">{placeholder}</option>
+        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+      {/* chevron */}
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2.5"
+        style={{ flexShrink: 0, pointerEvents: "none" }}>
+        <polyline points="6 9 12 15 18 9" />
+      </svg>
+    </div>
+  );
+}
+
+/* ============================================================================
+   MOBILE SHELL — photo hero top, white card slides up
+============================================================================ */
+function MobileShell({
+  children,
+  scrollable = false,
+}: {
+  children: React.ReactNode;
+  scrollable?: boolean;
+}) {
+  return (
+    <div style={{
+      minHeight: "100vh",
+      width: "100%",
+      position: "relative",
+      fontFamily: "'Nunito', 'Plus Jakarta Sans', system-ui, sans-serif",
+      background: "#1A2E0A",
+      display: "flex",
+      flexDirection: "column",
+      overflow: "hidden",
+    }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
+        @keyframes mSpin { to { transform: rotate(360deg); } }
+        @keyframes cardUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes photoFade { from { opacity: 0; } to { opacity: 1; } }
+        input::placeholder { color: ${C.placeholder}; }
+        input:disabled, select:disabled { opacity: 0.65; cursor: not-allowed; }
+      `}</style>
+
+      {/* ── HERO PHOTO ── */}
+      <div style={{
+        position: "absolute",
+        top: 0, left: 0, right: 0,
+        height: "48%",
+        backgroundImage: `url('${LEAF_PHOTO}')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center top",
+        animation: "photoFade .6s ease both",
+      }} />
+
+      {/* ── WHITE CARD PANEL ── */}
+      <div style={{
+        position: "absolute",
+        bottom: 0, left: 0, right: 0,
+        top: "35%",
+        background: C.white,
+        borderTopLeftRadius: 36,
+        borderTopRightRadius: 36,
+        padding: scrollable ? "32px 28px 40px" : "32px 28px 36px",
+        overflowY: scrollable ? "auto" : "visible",
+        animation: "cardUp .5s cubic-bezier(.2,.8,.2,1) both",
+        display: "flex",
+        flexDirection: "column",
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================================
+   EYE ICON — for password toggle
+============================================================================ */
+function EyeIcon({ open }: { open: boolean }) {
+  return open ? (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  ) : (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
+      <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/>
+      <line x1="1" y1="1" x2="23" y2="23"/>
+    </svg>
+  );
+}
 
 /* ============================================================================
    LOGIN FORM
@@ -462,12 +303,11 @@ function LoginForm({
   onPending: (email: string) => void;
   onRejected: () => void;
 }) {
-  const [email, setEmail] = useState("");
+  const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
-  const [showPw, setShowPw] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [showPw,   setShowPw]   = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -476,8 +316,7 @@ function LoginForm({
     setLoading(true);
     try {
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
+        email: email.trim().toLowerCase(), password,
       });
       if (authError) throw authError;
       if (!authData.user) throw new Error("Login failed. Please try again.");
@@ -491,140 +330,142 @@ function LoginForm({
       }
 
       const status = profile.status as ProfileStatus;
-      if (status === "pending") { await supabase.auth.signOut(); onPending(email.trim().toLowerCase()); return; }
+      if (status === "pending")  { await supabase.auth.signOut(); onPending(email.trim().toLowerCase()); return; }
       if (status === "rejected") { await supabase.auth.signOut(); onRejected(); return; }
       if (status !== "approved") { await supabase.auth.signOut(); throw new Error("Your account status is invalid. Contact your admin."); }
 
-      onSuccess({ id: authData.user.id, email: authData.user.email ?? "", name: profile.name, branch: profile.branch, team: profile.team, phone: profile.phone });
+      onSuccess({
+        id: authData.user.id,
+        email: authData.user.email ?? "",
+        name: profile.name, branch: profile.branch,
+        team: profile.team,  phone: profile.phone,
+      });
     } catch (err: unknown) {
       if (err instanceof Error) {
         const msg = err.message;
-        if (msg.includes("Invalid login credentials")) setError("Incorrect email or password. Please try again.");
-        else if (msg.includes("Email not confirmed")) setError("Please verify your email before logging in.");
+        if (msg.includes("Invalid login credentials")) setError("Incorrect email or password.");
+        else if (msg.includes("Email not confirmed")) setError("Please verify your email first.");
         else setError(msg);
       } else setError("Something went wrong. Please try again.");
     } finally { setLoading(false); }
   };
 
   return (
-    <div style={mobileWrap}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-      `}</style>
-      <div style={phoneShell}>
-        <BotanicalHeader />
-
-        {/* Content Card */}
-        <div style={{ flex: 1, padding: "4px 28px 32px", display: "flex", flexDirection: "column", animation: "fadeUp .4s ease both" }}>
-          {/* Title */}
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <h1 style={{ margin: 0, fontSize: 26, fontWeight: 700, color: C.ink, fontFamily: FONT, lineHeight: 1.2 }}>
-                Welcom Back
-              </h1>
-              {/* Small leaf accent */}
-              <svg width="28" height="36" viewBox="0 0 28 36" style={{ flexShrink: 0 }}>
-                <path d="M14 34 C14 34 1 22 2 11 C3 3 14 0 14 0 C14 0 25 3 26 11 C27 22 14 34 14 34Z" fill="#3AAD72" opacity="0.9"/>
-                <line x1="14" y1="2" x2="14" y2="32" stroke="#1B6040" strokeWidth="1.2" opacity="0.5"/>
-                <line x1="14" y1="12" x2="6" y2="18" stroke="#1B6040" strokeWidth="1" opacity="0.4"/>
-                <line x1="14" y1="19" x2="22" y2="24" stroke="#1B6040" strokeWidth="1" opacity="0.4"/>
-              </svg>
-            </div>
-            <p style={{ margin: "4px 0 0", fontSize: 13, color: C.sub }}>Login to your account</p>
-          </div>
-
-          {error && <div style={{ marginBottom: 14 }}><Alert type="error" message={error} /></div>}
-
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <Field
-              icon="👤"
-              type="email"
-              value={email}
-              onChange={setEmail}
-              placeholder="Full Name"
-              required
-              disabled={loading}
-            />
-            <Field
-              icon="🔒"
-              type={showPw ? "text" : "password"}
-              value={password}
-              onChange={setPassword}
-              placeholder="••••••••"
-              required
-              disabled={loading}
-              rightIcon={
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  {showPw
-                    ? <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></>
-                    : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
-                  }
-                </svg>
-              }
-              onRightIconClick={() => setShowPw(!showPw)}
-            />
-
-            {/* Remember Me + Forgot */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 2 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: C.sub, fontWeight: 500 }}>
-                <div
-                  onClick={() => setRememberMe(!rememberMe)}
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 6,
-                    border: `2px solid ${rememberMe ? C.greenMid : C.mintDark}`,
-                    background: rememberMe ? C.greenMid : "transparent",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    transition: "all .15s",
-                    flexShrink: 0,
-                  }}
-                >
-                  {rememberMe && (
-                    <svg width="10" height="10" viewBox="0 0 10 10">
-                      <polyline points="1.5,5 4,7.5 8.5,2.5" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )}
-                </div>
-                Remember Me
-              </label>
-              <button
-                type="button"
-                style={{ background: "none", border: "none", color: C.green, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: FONT, padding: 0 }}
-              >
-                Forgot Password ?
-              </button>
-            </div>
-
-            <div style={{ marginTop: 8 }}>
-              <button
-                type="submit"
-                disabled={loading}
-                style={{ ...primaryBtn, opacity: loading ? 0.75 : 1, cursor: loading ? "not-allowed" : "pointer" }}
-              >
-                {loading ? <><span style={spinnerStyle} /> Signing in…</> : "Login"}
-              </button>
-            </div>
-          </form>
-
-          <p style={{ textAlign: "center", marginTop: 20, fontSize: 13, color: C.sub }}>
-            Don't have account?{" "}
-            <button
-              onClick={onSwitchToRegister}
-              disabled={loading}
-              style={{ background: "none", border: "none", color: C.green, fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: FONT, padding: 0 }}
-            >
-              Sign up
-            </button>
-          </p>
+    <MobileShell>
+      {/* Heading row */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 28 }}>
+        <div>
+          <h1 style={{ margin: "0 0 4px", fontSize: 28, fontWeight: 900, color: C.green, letterSpacing: -0.5, lineHeight: 1.15 }}>
+            Welcome Back
+          </h1>
+          <p style={{ margin: 0, fontSize: 13, color: C.sub }}>Login to your account</p>
         </div>
+        <LeafSprig />
       </div>
-    </div>
+
+      {error && <Alert type="error" message={error} />}
+
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* Email field */}
+        <MField
+          icon={
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          }
+          type="email"
+          value={email}
+          onChange={setEmail}
+          placeholder="Email address"
+          disabled={loading}
+        />
+
+        {/* Password field with eye toggle */}
+        <MField
+          icon={
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+          }
+          type={showPw ? "text" : "password"}
+          value={password}
+          onChange={setPassword}
+          placeholder="Password"
+          disabled={loading}
+          rightNode={
+            <button
+              type="button"
+              onClick={() => setShowPw(!showPw)}
+              style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.sub, display: "flex" }}
+            >
+              <EyeIcon open={showPw} />
+            </button>
+          }
+        />
+
+        {/* Remember me / Forgot */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 2px" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: C.sub, cursor: "pointer" }}>
+            <span style={{
+              width: 16, height: 16, borderRadius: "50%",
+              border: `2px solid ${C.greenBorder}`,
+              background: C.greenLight,
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+            }}>
+              <svg width="9" height="9" viewBox="0 0 10 10">
+                <circle cx="5" cy="5" r="3" fill={C.green} />
+              </svg>
+            </span>
+            Remember Me
+          </label>
+          <button type="button" style={{ background: "none", border: "none", fontSize: 12, fontWeight: 700, color: C.green, cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
+            Forgot Password?
+          </button>
+        </div>
+
+        {/* Login button */}
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            marginTop: 12,
+            height: 54,
+            borderRadius: 999,
+            border: "none",
+            background: C.green,
+            color: C.white,
+            fontSize: 16,
+            fontWeight: 800,
+            cursor: loading ? "not-allowed" : "pointer",
+            opacity: loading ? 0.75 : 1,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            fontFamily: "inherit",
+            letterSpacing: 0.3,
+          }}
+        >
+          {loading ? <><span style={spinnerStyle} />Signing in…</> : "Login"}
+        </button>
+      </form>
+
+      <p style={{ marginTop: 22, fontSize: 13, color: C.sub, textAlign: "center" }}>
+        Don't have account?{" "}
+        <button
+          onClick={onSwitchToRegister}
+          disabled={loading}
+          style={{
+            background: "none", border: "none",
+            color: C.green, fontWeight: 800, fontSize: 13,
+            cursor: "pointer", fontFamily: "inherit", padding: 0,
+            textDecoration: "underline", textDecorationColor: C.greenBorder,
+          }}
+        >
+          Sign up
+        </button>
+      </p>
+    </MobileShell>
   );
 }
 
@@ -638,29 +479,30 @@ function RegisterForm({
   onRegistered: (email: string) => void;
   onSwitchToLogin: () => void;
 }) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [branch, setBranch] = useState("");
-  const [team, setTeam] = useState("");
+  const [name,     setName]     = useState("");
+  const [email,    setEmail]    = useState("");
+  const [phone,    setPhone]    = useState("");
+  const [branch,   setBranch]   = useState("");
+  const [team,     setTeam]     = useState("");
   const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [showPw, setShowPw] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [confirm,  setConfirm]  = useState("");
+  const [showPw,   setShowPw]   = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState("");
+  const [success,  setSuccess]  = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(""); setSuccess("");
-    if (!name || !email || !phone || !branch || !team || !password || !confirm) { setError("Please fill in all required fields."); return; }
+    if (!name || !email || !phone || !branch || !team || !password || !confirm) {
+      setError("Please fill in all required fields."); return;
+    }
     if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
     if (password !== confirm) { setError("Passwords do not match."); return; }
     setLoading(true);
     try {
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
+        email: email.trim().toLowerCase(), password,
         options: { data: { name, phone, branch, team } },
       });
       if (authError) throw authError;
@@ -671,8 +513,7 @@ function RegisterForm({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
-        branch, team,
-        status: "pending",
+        branch, team, status: "pending",
       });
       if (profileError) throw profileError;
 
@@ -685,94 +526,129 @@ function RegisterForm({
     } finally { setLoading(false); }
   };
 
+  const UserIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    </svg>
+  );
+  const MailIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+      <polyline points="22,6 12,13 2,6"/>
+    </svg>
+  );
+  const PhoneIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 10a19.79 19.79 0 01-3.07-8.67A2 2 0 012 .84h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+    </svg>
+  );
+  const MapIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+    </svg>
+  );
+  const TeamIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+    </svg>
+  );
+  const LockIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0110 0v4"/>
+    </svg>
+  );
+
   return (
-    <div style={mobileWrap}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-      `}</style>
-      <div style={{ ...phoneShell, minHeight: 820 }}>
-        <BotanicalHeader back onBack={onSwitchToLogin} />
-
-        <div style={{ flex: 1, padding: "4px 28px 32px", display: "flex", flexDirection: "column", animation: "fadeUp .4s ease both", overflowY: "auto" }}>
-          <div style={{ marginBottom: 22 }}>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: C.ink, fontFamily: FONT }}>Create Account</h1>
-            <p style={{ margin: "4px 0 0", fontSize: 13, color: C.sub }}>Register to access the Sales Dashboard</p>
-          </div>
-
-          {error && <div style={{ marginBottom: 12 }}><Alert type="error" message={error} /></div>}
-          {success && <div style={{ marginBottom: 12 }}><Alert type="success" message={success} /></div>}
-
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-            <Field icon="👤" value={name} onChange={setName} placeholder="Full Name" required disabled={loading} />
-            <Field icon="✉️" type="email" value={email} onChange={setEmail} placeholder="Email Address" required disabled={loading} />
-            <Field icon="📱" type="tel" value={phone} onChange={setPhone} placeholder="+234 801 234 5678" required disabled={loading} />
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <SelectField
-                icon="🏢"
-                value={branch}
-                onChange={setBranch}
-                options={BRANCHES.map((b) => ({ value: b, label: b }))}
-                required
-                disabled={loading}
-              />
-              <SelectField
-                icon="👥"
-                value={team}
-                onChange={setTeam}
-                options={TEAMS.map((t) => ({ value: t, label: t }))}
-                required
-                disabled={loading}
-              />
-            </div>
-            <Field
-              icon="🔒"
-              type={showPw ? "text" : "password"}
-              value={password}
-              onChange={setPassword}
-              placeholder="Password (min. 8 chars)"
-              required
-              disabled={loading}
-              rightIcon={
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  {showPw
-                    ? <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></>
-                    : <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>
-                  }
-                </svg>
-              }
-              onRightIconClick={() => setShowPw(!showPw)}
-            />
-            <Field icon="🔒" type="password" value={confirm} onChange={setConfirm} placeholder="Confirm Password" required disabled={loading} />
-
-            <div style={{ marginTop: 6 }}>
-              <button
-                type="submit"
-                disabled={loading}
-                style={{ ...primaryBtn, opacity: loading ? 0.75 : 1, cursor: loading ? "not-allowed" : "pointer" }}
-              >
-                {loading ? <><span style={spinnerStyle} /> Registering…</> : "Create Account"}
-              </button>
-            </div>
-          </form>
-
-          <p style={{ textAlign: "center", marginTop: 16, fontSize: 13, color: C.sub }}>
-            Already have an account?{" "}
-            <button
-              onClick={onSwitchToLogin}
-              disabled={loading}
-              style={{ background: "none", border: "none", color: C.green, fontWeight: 800, fontSize: 13, cursor: "pointer", fontFamily: FONT, padding: 0 }}
-            >
-              Sign in
-            </button>
-          </p>
-          <p style={{ margin: "10px 0 0", fontSize: 11, color: C.placeholder, textAlign: "center", lineHeight: 1.5 }}>
-            Your account requires admin approval before login.
-          </p>
+    <MobileShell scrollable>
+      {/* Heading */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ margin: "0 0 4px", fontSize: 26, fontWeight: 900, color: C.green, letterSpacing: -0.5, lineHeight: 1.15 }}>
+            Create Account
+          </h1>
+          <p style={{ margin: 0, fontSize: 13, color: C.sub }}>Register to access the Sales Dashboard</p>
         </div>
+        <LeafSprig />
       </div>
-    </div>
+
+      {error   && <Alert type="error"   message={error}   />}
+      {success && <Alert type="success" message={success} />}
+
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <MField icon={<UserIcon />}  value={name}     onChange={setName}     placeholder="Full name"           disabled={loading} />
+        <MField icon={<MailIcon />}  type="email" value={email}    onChange={setEmail}    placeholder="Email address"       disabled={loading} />
+        <MField icon={<PhoneIcon />} type="tel"   value={phone}    onChange={setPhone}    placeholder="+234 801 234 5678"   disabled={loading} />
+
+        <MSelect
+          icon={<MapIcon />}
+          value={branch} onChange={setBranch}
+          options={BRANCHES} placeholder="Select branch…"
+          disabled={loading}
+        />
+        <MSelect
+          icon={<TeamIcon />}
+          value={team} onChange={setTeam}
+          options={TEAMS} placeholder="Select team…"
+          disabled={loading}
+        />
+
+        <MField
+          icon={<LockIcon />}
+          type={showPw ? "text" : "password"}
+          value={password} onChange={setPassword}
+          placeholder="Password (min. 8 chars)"
+          disabled={loading}
+          rightNode={
+            <button type="button" onClick={() => setShowPw(!showPw)}
+              style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: C.sub, display: "flex" }}>
+              <EyeIcon open={showPw} />
+            </button>
+          }
+        />
+        <MField
+          icon={<LockIcon />}
+          type="password"
+          value={confirm} onChange={setConfirm}
+          placeholder="Confirm password"
+          disabled={loading}
+        />
+
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            marginTop: 10,
+            height: 54, borderRadius: 999,
+            border: "none", background: C.green,
+            color: C.white, fontSize: 16, fontWeight: 800,
+            cursor: loading ? "not-allowed" : "pointer",
+            opacity: loading ? 0.75 : 1,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            fontFamily: "inherit", letterSpacing: 0.3,
+          }}
+        >
+          {loading ? <><span style={spinnerStyle} />Creating account…</> : "Create Account"}
+        </button>
+      </form>
+
+      <p style={{ marginTop: 20, fontSize: 13, color: C.sub, textAlign: "center" }}>
+        Already have an account?{" "}
+        <button onClick={onSwitchToLogin} disabled={loading}
+          style={{
+            background: "none", border: "none", color: C.green, fontWeight: 800,
+            fontSize: 13, cursor: "pointer", fontFamily: "inherit", padding: 0,
+            textDecoration: "underline", textDecorationColor: C.greenBorder,
+          }}>
+          Sign in
+        </button>
+      </p>
+      <p style={{ margin: "8px 0 0", fontSize: 11, color: C.placeholder, textAlign: "center", lineHeight: 1.5 }}>
+        Account requires admin approval before you can log in.
+      </p>
+    </MobileShell>
   );
 }
 
@@ -781,27 +657,37 @@ function RegisterForm({
 ============================================================================ */
 function PendingScreen({ email, onBackToLogin }: { email: string; onBackToLogin: () => void }) {
   return (
-    <div style={mobileWrap}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');`}</style>
-      <div style={phoneShell}>
-        <BotanicalHeader back onBack={onBackToLogin} />
-        <div style={{ flex: 1, padding: "20px 28px 40px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 }}>
-          <div style={{ width: 72, height: 72, borderRadius: "50%", background: C.mint, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>⏳</div>
-          <div style={{ textAlign: "center" }}>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.ink, fontFamily: FONT }}>Awaiting Approval</h2>
-            <p style={{ margin: "8px 0 0", fontSize: 14, color: C.sub, lineHeight: 1.6 }}>
-              Account for <strong>{email}</strong> is pending admin review. You'll be able to log in once approved.
-            </p>
-          </div>
-          <div style={{ background: C.mint, border: `1px solid ${C.mintDark}`, borderRadius: 14, padding: "14px 16px", width: "100%" }}>
-            <p style={{ margin: 0, fontSize: 13, color: C.green, lineHeight: 1.6 }}>
-              📧 Contact your admin or team lead if you need urgent access. This typically takes 1–2 business days.
-            </p>
-          </div>
-          <button onClick={onBackToLogin} style={secondaryBtn}>Back to Login</button>
+    <MobileShell>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 20, paddingTop: 8 }}>
+        <div style={{
+          width: 72, height: 72, borderRadius: "50%",
+          background: C.greenLight, border: `2px solid ${C.greenBorder}`,
+          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30,
+        }}>⏳</div>
+        <div>
+          <h2 style={{ margin: "0 0 10px", fontSize: 22, fontWeight: 900, color: C.green }}>Awaiting Approval</h2>
+          <p style={{ margin: 0, fontSize: 13, color: C.sub, lineHeight: 1.7 }}>
+            Your account for <strong style={{ color: C.green }}>{email}</strong> has been submitted and is pending review. You'll be able to log in once approved.
+          </p>
         </div>
+        <div style={{
+          background: C.greenLight, border: `1px solid ${C.greenBorder}`,
+          borderRadius: 14, padding: "14px 18px", width: "100%", textAlign: "left",
+        }}>
+          <p style={{ margin: 0, fontSize: 12, color: C.green, lineHeight: 1.65 }}>
+            📧 Contact your admin or team lead for urgent access. This typically takes 1–2 business days.
+          </p>
+        </div>
+        <button onClick={onBackToLogin} style={{
+          width: "100%", height: 54, borderRadius: 999,
+          border: `2px solid ${C.greenBorder}`, background: C.white,
+          color: C.green, fontSize: 15, fontWeight: 800,
+          cursor: "pointer", fontFamily: "inherit",
+        }}>
+          Back to Login
+        </button>
       </div>
-    </div>
+    </MobileShell>
   );
 }
 
@@ -810,22 +696,30 @@ function PendingScreen({ email, onBackToLogin }: { email: string; onBackToLogin:
 ============================================================================ */
 function RejectedScreen({ onBackToLogin }: { onBackToLogin: () => void }) {
   return (
-    <div style={mobileWrap}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');`}</style>
-      <div style={phoneShell}>
-        <BotanicalHeader back onBack={onBackToLogin} />
-        <div style={{ flex: 1, padding: "20px 28px 40px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 20 }}>
-          <div style={{ width: 72, height: 72, borderRadius: "50%", background: "#FEF2F2", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, color: C.error }}>✕</div>
-          <div style={{ textAlign: "center" }}>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.ink, fontFamily: FONT }}>Access Denied</h2>
-            <p style={{ margin: "8px 0 0", fontSize: 14, color: C.sub, lineHeight: 1.6 }}>
-              Your registration request was not approved. Please contact your team lead or admin for assistance.
-            </p>
-          </div>
-          <button onClick={onBackToLogin} style={secondaryBtn}>Back to Login</button>
+    <MobileShell>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 20, paddingTop: 8 }}>
+        <div style={{
+          width: 72, height: 72, borderRadius: "50%",
+          background: "#FEF2F2", border: "2px solid #FECACA",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 24, color: C.error,
+        }}>✕</div>
+        <div>
+          <h2 style={{ margin: "0 0 10px", fontSize: 22, fontWeight: 900, color: C.ink }}>Access Denied</h2>
+          <p style={{ margin: 0, fontSize: 13, color: C.sub, lineHeight: 1.7 }}>
+            Your registration request was not approved. Please contact your team lead or admin for assistance.
+          </p>
         </div>
+        <button onClick={onBackToLogin} style={{
+          width: "100%", height: 54, borderRadius: 999,
+          border: `2px solid ${C.greenBorder}`, background: C.white,
+          color: C.green, fontSize: 15, fontWeight: 800,
+          cursor: "pointer", fontFamily: "inherit",
+        }}>
+          Back to Login
+        </button>
       </div>
-    </div>
+    </MobileShell>
   );
 }
 
@@ -833,12 +727,11 @@ function RejectedScreen({ onBackToLogin }: { onBackToLogin: () => void }) {
    MAIN AUTH FLOW
 ============================================================================ */
 export default function AuthFlow({ onSuccess }: AuthFlowProps) {
-  const [screen, setScreen] = useState<Screen>("login");
+  const [screen, setScreen]             = useState<Screen>("login");
   const [pendingEmail, setPendingEmail] = useState("");
 
   return (
     <>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       {screen === "login" && (
         <LoginForm
           onSuccess={onSuccess}

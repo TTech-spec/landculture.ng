@@ -2,13 +2,8 @@ import React, { useState, useEffect } from "react";
 
 /**
  * Wellness Real Estate — Welcome / Onboarding screen
- * Matches the reference UI: full-bleed hero, top-left headline,
- * bottom subtext, floating badge, pill CTA, and arrow navigation.
- *
- * Palette:
- *   Dark green  #004C3F
- *   Light mint  #E2F3ED
- *   Background  #FFFFFF
+ * Fills the real device screen — no fake phone frame.
+ * Workflow is untouched: same slides, same nav, same CTA.
  */
 
 const COLORS = {
@@ -53,17 +48,14 @@ export default function WelcomePage({ onGetStarted }: WelcomePageProps) {
   const prev = () => setIndex((i) => (i - 1 + SLIDES.length) % SLIDES.length);
 
   return (
+    // ─── Outermost: fills the real device screen, no fake frame ───
     <div
       style={{
-        minHeight: "100vh",
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: COLORS.mint,
+        position: "fixed",
+        inset: 0,                      // top/right/bottom/left all 0
+        overflow: "hidden",
+        background: COLORS.green,
         fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
-        padding: 24,
-        boxSizing: "border-box",
       }}
     >
       <style>{`
@@ -82,25 +74,20 @@ export default function WelcomePage({ onGetStarted }: WelcomePageProps) {
           to   { transform: scale(1); }
         }
         @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
+          0%   { background-position: -200% 0; }
+          100% { background-position:  200% 0; }
         }
-        .rise { animation: riseIn 0.7s cubic-bezier(.2,.8,.2,1) both; }
-        .hero-img { animation: slowZoom 8s ease-out both; }
-        .badge { animation: floatBadge 3.2s ease-in-out infinite; }
 
-        .nav-btn {
-          transition: transform .2s ease, background .25s ease, color .25s ease;
-        }
-        .nav-btn:hover { transform: scale(1.08); }
+        .rise     { animation: riseIn 0.7s cubic-bezier(.2,.8,.2,1) both; }
+        .hero-img { animation: slowZoom 8s ease-out both; }
+        .badge    { animation: floatBadge 3.2s ease-in-out infinite; }
+
+        .nav-btn { transition: transform .2s ease, background .25s ease, color .25s ease; }
+        .nav-btn:hover  { transform: scale(1.08); }
         .nav-btn:active { transform: scale(.94); }
 
-        .cta {
-          transition: transform .25s ease, box-shadow .3s ease;
-          position: relative;
-          overflow: hidden;
-        }
-        .cta:hover { transform: translateY(-2px); }
+        .cta { transition: transform .25s ease, box-shadow .3s ease; position: relative; overflow: hidden; }
+        .cta:hover  { transform: translateY(-2px); }
         .cta:active { transform: translateY(0); }
         .cta::after {
           content: "";
@@ -111,67 +98,38 @@ export default function WelcomePage({ onGetStarted }: WelcomePageProps) {
         }
       `}</style>
 
-      {/* Phone frame */}
+      {/* Hero image — full-bleed */}
+      <div
+        key={index}
+        className="hero-img"
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage:
+            "url('https://images.unsplash.com/photo-1545241047-6083a3684587?q=80&w=900&auto=format&fit=crop')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      />
+
+      {/* Green tint + gradient for legibility */}
       <div
         style={{
-          position: "relative",
-          width: 340,
-          height: 720,
-          borderRadius: 46,
-          overflow: "hidden",
-          background: COLORS.green,
-          boxShadow:
-            "0 30px 80px rgba(0,76,63,.35), 0 4px 16px rgba(0,0,0,.2)",
-          border: `1px solid rgba(255,255,255,.08)`,
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(180deg, rgba(0,76,63,.55) 0%, rgba(0,76,63,.18) 38%, rgba(0,76,63,.30) 64%, rgba(0,76,63,.88) 100%)",
         }}
-      >
-        {/* Hero image */}
-        <div
-          key={index}
-          className="hero-img"
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1545241047-6083a3684587?q=80&w=900&auto=format&fit=crop')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        />
-        {/* Green tint + gradient for legibility */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(180deg, rgba(0,76,63,.55) 0%, rgba(0,76,63,.18) 38%, rgba(0,76,63,.30) 64%, rgba(0,76,63,.88) 100%)",
-          }}
-        />
+      />
 
-        {/* Status bar */}
-        <div
-          style={{
-            position: "relative",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "16px 22px 0",
-            color: COLORS.white,
-            fontSize: 13,
-            fontWeight: 600,
-            letterSpacing: .3,
-          }}
-        >
-          <span>11:30</span>
-          <span style={{ display: "flex", gap: 6, alignItems: "center", fontSize: 12 }}>
-            <span>▮▮▮▯</span>
-            <span>᳁</span>
-            <span>▰</span>
-          </span>
-        </div>
+      {/* All UI lives above the overlays */}
+      <div style={{ position: "relative", height: "100%", display: "flex", flexDirection: "column" }}>
+
+        {/* Status bar space — lets the OS status bar breathe */}
+        <div style={{ height: "env(safe-area-inset-top, 44px)" }} />
 
         {/* Headline (top-left) */}
-        <div style={{ position: "relative", padding: "26px 22px 0" }}>
+        <div style={{ padding: "20px 24px 0" }}>
           {slide.headline.map((line, i) => (
             <h1
               key={`${index}-${i}`}
@@ -181,7 +139,7 @@ export default function WelcomePage({ onGetStarted }: WelcomePageProps) {
                 color: COLORS.white,
                 fontFamily: "'Fraunces', serif",
                 fontWeight: 600,
-                fontSize: 40,
+                fontSize: "clamp(36px, 10vw, 52px)",
                 lineHeight: 1.02,
                 letterSpacing: -0.5,
                 animationDelay: `${0.08 * i}s`,
@@ -192,14 +150,13 @@ export default function WelcomePage({ onGetStarted }: WelcomePageProps) {
           ))}
         </div>
 
+        {/* Spacer pushes bottom content down */}
+        <div style={{ flex: 1 }} />
+
         {/* Bottom content block */}
         <div
           style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            padding: "0 22px 26px",
+            padding: "0 24px calc(env(safe-area-inset-bottom, 24px) + 16px)",
           }}
         >
           <p
@@ -210,7 +167,7 @@ export default function WelcomePage({ onGetStarted }: WelcomePageProps) {
               fontWeight: 500,
               lineHeight: 1.4,
               margin: "0 0 14px",
-              maxWidth: 240,
+              maxWidth: 280,
               animationDelay: ".25s",
             }}
           >
