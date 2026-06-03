@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState, useEffect } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import AuthFlow, { type User as AuthUser } from "@/auth";
 import WelcomePage from "@/components/welcomeScreen";
 import { Plus, Search, LayoutGrid, Bell } from "lucide-react";
@@ -15,7 +15,9 @@ import {
   type Stage,
   type Temperature,
 } from "@/lib/leads-store";
-import { leadsStore, useLeads } from "@/lib/leads-state";
+import { leadsStore, useLeads, fetchLeadsFromSupabase } from "@/lib/leads-state";
+import { loadProfileFromSupabase } from "@/lib/user-state";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -36,6 +38,7 @@ type AppScreen = "welcome" | "auth" | "dashboard";
 function AuthGate() {
   const [screen, setScreen] = useState<AppScreen>("welcome");
   const [authedUser, setAuthedUser] = useState<AuthUser | null>(null);
+  const navigate = useNavigate();
 
   if (screen === "welcome") {
     return <WelcomePage onGetStarted={() => setScreen("auth")} />;
@@ -45,7 +48,11 @@ function AuthGate() {
       <AuthFlow
         onSuccess={(user) => {
           setAuthedUser(user);
-          setScreen("dashboard");
+          if (user.role === "Team Lead") {
+            navigate({ to: "/dashboard" });
+          } else {
+            setScreen("dashboard");
+          }
         }}
       />
     );
@@ -67,6 +74,27 @@ function Dashboard() {
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const [openLeadId, setOpenLeadId] = useState<string | null>(null);
+
+  // Load real profile data and leads from Supabase on mount
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // Load profile data from Supabase
+          await loadProfileFromSupabase(session.user.id);
+          
+          // Load leads from Supabase
+          const leadsFromSupabase = await fetchLeadsFromSupabase(session.user.id);
+          setLeads(() => leadsFromSupabase);
+        }
+      } catch (error) {
+        console.error('Error loading data from Supabase:', error);
+      }
+    }
+    
+    loadData();
+  }, []);
 
   const pendingCount = useMemo(
     () =>

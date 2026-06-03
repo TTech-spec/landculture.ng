@@ -5,8 +5,10 @@ import {
   type Lead,
   type LeadSource,
   type Temperature,
-  CURRENT_USER,
 } from "@/lib/leads-store";
+import { uploadLeadToSupabase } from "@/lib/leads-state";
+import { useUser } from "@/lib/user-state";
+import { supabase } from "@/lib/supabase";
 
 const SOURCES: LeadSource[] = [
   "Referral",
@@ -27,6 +29,7 @@ export function NewLeadDialog({
   onClose: () => void;
   onCreate: (lead: Lead) => void;
 }) {
+  const user = useUser();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -35,6 +38,7 @@ export function NewLeadDialog({
   const [temperature, setTemperature] = useState<Temperature>("Warm");
   const [followUpDate, setFollowUpDate] = useState("");
   const [note, setNote] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   if (!open) return null;
 
@@ -49,37 +53,67 @@ export function NewLeadDialog({
     setNote("");
   };
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const now = new Date().toISOString();
-    const lead: Lead = {
-      id: generateLeadId(),
-      name,
-      phone,
-      email,
-      location,
-      source,
-      temperature,
-      stage: "Lead",
-      createdAt: now,
-      notes: note,
-      followUpDate: followUpDate || null,
-      history: [
-        {
-          id: crypto.randomUUID(),
-          at: now,
-          by: CURRENT_USER.name,
-          fromStage: null,
-          toStage: "Lead",
-          fromTemperature: null,
-          toTemperature: temperature,
-          note,
-        },
-      ],
-    };
-    onCreate(lead);
-    reset();
-    onClose();
+    setUploading(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        throw new Error('Not authenticated');
+      }
+      
+      console.log('User ID:', session.user.id);
+      console.log('User Email:', session.user.email);
+
+      const now = new Date().toISOString();
+      const leadData: Omit<Lead, 'id' | 'history'> = {
+        name,
+        phone,
+        email,
+        location,
+        source,
+        temperature,
+        stage: "Lead",
+        createdAt: now,
+        notes: note,
+        followUpDate: followUpDate || null,
+      };
+      
+      console.log('Lead data to upload:', leadData);
+
+      const uploadedLead = await uploadLeadToSupabase(session.user.id, leadData);
+      
+      console.log('Uploaded lead result:', uploadedLead);
+      
+      if (uploadedLead) {
+        const lead: Lead = {
+          ...uploadedLead,
+          history: [
+            {
+              id: crypto.randomUUID(),
+              at: now,
+              by: user.name || 'Unknown User',
+              fromStage: null,
+              toStage: "Lead",
+              fromTemperature: null,
+              toTemperature: temperature,
+              note,
+            },
+          ],
+        };
+        onCreate(lead);
+        reset();
+        onClose();
+      } else {
+        alert('Failed to upload lead to Supabase. Check console for details.');
+      }
+    } catch (error) {
+      console.error('Error creating lead:', error);
+      alert(`Error creating lead: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -113,9 +147,10 @@ export function NewLeadDialog({
                 className="input"
               />
             </Field>
-            <Field label="Email Address">
+            <Field label="Email Address" required>
               <input
                 type="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input"
@@ -182,9 +217,10 @@ export function NewLeadDialog({
             </button>
             <button
               type="submit"
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
+              disabled={uploading}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50"
             >
-              Create Lead
+              {uploading ? 'Creating...' : 'Create Lead'}
             </button>
           </div>
         </form>

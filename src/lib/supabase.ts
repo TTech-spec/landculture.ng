@@ -14,6 +14,7 @@ export interface Profile {
   phone: string;
   team: string;
   branch: string;
+  role: string;
   status: ProfileStatus;
   created_at: string;
 }

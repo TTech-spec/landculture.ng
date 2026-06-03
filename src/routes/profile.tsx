@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TopNav } from "@/components/dashboard/TopNav";
 import {
   useUser,
@@ -7,8 +7,9 @@ import {
   userStore,
   fieldLabel,
   type UserProfile,
+  fetchProfileFromSupabase,
 } from "@/lib/user-state";
-import { CURRENT_USER } from "@/lib/leads-store";
+import { supabase } from "@/lib/supabase";
 import { Pencil, Save, X, Mail, Phone, Building2, BadgeCheck, History, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/profile")({
@@ -26,14 +27,34 @@ function ProfilePage() {
   const activity = useProfileActivity();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<UserProfile>(user);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const profileData = await fetchProfileFromSupabase(session.user.id);
+          if (profileData) {
+            userStore.setProfile(profileData);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadProfile();
+  }, []);
 
   const startEdit = () => {
     setDraft(user);
     setEditing(true);
   };
-  const save = (e: React.FormEvent) => {
+  const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    userStore.update(draft, CURRENT_USER.name);
+    await userStore.update(draft, user.name);
     setEditing(false);
   };
 

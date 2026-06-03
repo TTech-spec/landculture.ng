@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import { CURRENT_USER } from "@/lib/leads-store";
+import { supabase } from "@/lib/supabase";
 
 export interface UserProfile {
   name: string;
@@ -8,6 +8,7 @@ export interface UserProfile {
   role: string;
   email: string;
   phone: string;
+  id?: string;
 }
 
 export interface ProfileChange {
@@ -39,14 +40,73 @@ export function fieldLabel(f: keyof UserProfile) {
   return FIELD_LABELS[f];
 }
 
+// Initialize with empty values - will be loaded from Supabase
 let profile: UserProfile = {
-  name: CURRENT_USER.name,
-  initials: CURRENT_USER.initials,
-  branch: CURRENT_USER.branch,
-  role: CURRENT_USER.role,
-  email: "adaeze.okafor@company.com",
-  phone: "+234 801 234 5678",
+  name: "",
+  initials: "",
+  branch: "",
+  role: "",
+  email: "",
+  phone: "",
+  id: "",
 };
+
+// Fetch real profile data from Supabase and update the store
+export async function loadProfileFromSupabase(userId: string): Promise<UserProfile | null> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) throw error;
+    if (!data) return null;
+    
+    const initials = data.name ? deriveInitials(data.name) : '??';
+    const newProfile: UserProfile = {
+      id: data.id,
+      name: data.name || '',
+      initials: initials,
+      branch: data.branch || '',
+      role: data.role || '',
+      email: data.email || '',
+      phone: data.phone || '',
+    };
+    
+    // Update the store with real data
+    profile = newProfile;
+    refreshSnapshot();
+    emit();
+    
+    return newProfile;
+  } catch (err) {
+    console.error('Error fetching profile:', err);
+    return null;
+  }
+}
+
+// Update profile in Supabase
+export async function updateProfileInSupabase(userId: string, updates: Partial<UserProfile>): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        name: updates.name,
+        email: updates.email,
+        phone: updates.phone,
+        branch: updates.branch,
+        role: updates.role,
+      })
+      .eq('id', userId);
+    
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error('Error updating profile:', err);
+    return false;
+  }
+}
 
 let activity: ProfileChange[] = [];
 
@@ -64,7 +124,7 @@ function uid() {
 
 export const userStore = {
   get: () => snapshot,
-  update: (patch: Partial<UserProfile>, by: string) => {
+  update: async (patch: Partial<UserProfile>, by: string) => {
     const next = { ...profile, ...patch };
     if (patch.name && !patch.initials) {
       next.initials = deriveInitials(next.name);
@@ -85,6 +145,16 @@ export const userStore = {
     if (changes.length === 0) return;
     profile = next;
     activity = [...changes, ...activity];
+    refreshSnapshot();
+    emit();
+    
+    // Sync to Supabase if we have a user ID
+    if (profile.id) {
+      await updateProfileInSupabase(profile.id, patch);
+    }
+  },
+  setProfile: (newProfile: UserProfile) => {
+    profile = newProfile;
     refreshSnapshot();
     emit();
   },
